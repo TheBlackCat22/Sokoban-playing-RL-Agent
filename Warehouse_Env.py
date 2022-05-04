@@ -22,6 +22,9 @@ class Warehouse():
         self.agent_state=self.state_lookup[tuple(self.agent_position)]
         self.box_state=self.state_lookup[tuple(self.box_position)]
         self.goal_state=self.state_lookup[tuple(self.goal_position)]
+        
+        self.history=[[self.agent_position,self.box_position]]
+        self.prev_ep_history=[]
 
 
     def reset(self):
@@ -29,8 +32,7 @@ class Warehouse():
 
         self.box_position = np.array([3,4])
         
-        return [self.agent_position,self.box_position]
-
+        
 
     def step(self, action):
 
@@ -71,15 +73,17 @@ class Warehouse():
             done=True
             self.reset()
         if new_box_pos.tolist() in self.box_stuck.tolist():
-            reward=-1
+            reward=-5
             done=True
             self.reset()
+            
 
         return [[self.agent_state,self.box_state],reward,done]
+       
         
-    def render(self): 
+    def render(self,for_animation=False): 
         
-        img=np.ones((self.GRID_DIM[1],self.GRID_DIM[0],3))
+        img=np.ones((self.GRID_DIM[1],self.GRID_DIM[0],3),dtype=np.uint8)
         img=img*255
 
         for i in  self.wall_position:
@@ -92,10 +96,13 @@ class Warehouse():
 
         img[self.goal_position[1] ,self.goal_position[0]  ]=[0,255,0]
 
-        plt.figure(figsize=(8,6))
-        plt.imshow(img)
-        plt.plot(0,0,"-",color="red",label="Box")
-        plt.plot(0,0,"-",color="green",label="Goal")
-        plt.plot(0,0,"-",color="yellow",label="Agent")
-        plt.legend(loc="upper right",bbox_to_anchor=(1.25,1))
-        plt.show()
+        if not for_animation:
+            plt.imshow(img)
+            plt.plot(0,0,"-",color="red",label="Box")
+            plt.plot(0,0,"-",color="green",label="Goal")
+            plt.plot(0,0,"-",color="yellow",label="Agent")
+            plt.legend(loc="upper right",bbox_to_anchor=(1.25,1))
+            plt.show()
+        else:
+            return img
+        
