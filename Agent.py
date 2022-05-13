@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 
 
-def e_greedy(state,Q,epsilon):
+def e_greedy(state,Q,epsilon=0.2):
     n=np.random.random_sample()
     if n>=epsilon:
         action=np.argmax(Q[state[0],state[1]])
@@ -14,7 +14,7 @@ def e_greedy(state,Q,epsilon):
     
         
             
-def sarsa(env,alpha=0.5,gamma=0.1,epsilon=0.1,episodes=100,verbose=0):          
+def sarsa(env,alpha=0.5,gamma=0.8,epsilon=0.1,episodes=100,verbose=0):          
     
     Q=np.random.random_sample(size=(env.state_space[0],env.state_space[1],env.action_space))
     Q[:,env.goal_state,:] = 0.0
@@ -27,7 +27,6 @@ def sarsa(env,alpha=0.5,gamma=0.1,epsilon=0.1,episodes=100,verbose=0):
         action=e_greedy(state,Q,epsilon)
         done=False
         while done==False:
-            #print(state,action,done)
             [new_state,reward,done]=env.step(action)
             steps+=1
             new_action=e_greedy(new_state,Q,epsilon)
@@ -46,7 +45,7 @@ def sarsa(env,alpha=0.5,gamma=0.1,epsilon=0.1,episodes=100,verbose=0):
           
                 
                 
-def q_learning(env,alpha=0.5,gamma=0.1,epsilon=0.1,episodes=100,verbose=0):
+def q_learning(env,alpha=0.5,gamma=0.5,epsilon=0.1,episodes=100,verbose=0):
     
     Q=np.random.random_sample(size=(env.state_space[0],env.state_space[1],env.action_space))
     Q[:,env.goal_state,:] = 0.0
@@ -76,7 +75,7 @@ def q_learning(env,alpha=0.5,gamma=0.1,epsilon=0.1,episodes=100,verbose=0):
     
     
 
-def on_policy_mc(env,gamma=0.1,epsilon=0.1,episodes=100,verbose=0):
+def on_policy_mc(env,gamma=0.8,epsilon=0.25,episodes=100,verbose=0):
     
     Q=np.random.random_sample(size=(env.state_space[0],env.state_space[1],env.action_space))
     returns=np.zeros(shape=Q.shape+(episodes,))
@@ -84,6 +83,7 @@ def on_policy_mc(env,gamma=0.1,epsilon=0.1,episodes=100,verbose=0):
     policy=np.zeros(shape=(env.state_space[0],env.state_space[1]))
     
     for ep in range(1,episodes+1):
+        env.reset()
         done=False
         history=[]
         while not done:
@@ -104,26 +104,16 @@ def on_policy_mc(env,gamma=0.1,epsilon=0.1,episodes=100,verbose=0):
     
     for i in range(env.state_space[0]):
         for j in range(env.state_space[1]):
+            policy[i,j]=e_greedy((i,j),Q,epsilon)
             
-            n=np.random.random_sample()
-            if n>=epsilon:
-                action=np.argmax(Q[state[0],state[1]])
-                policy[i,j]=action
-            else:
-                action=np.random.randint(0,4)
-                policy[i,j]=action
-    
     return policy
     
     
 
-def off_policy_mc(env,gamma=0.1,episodes=100,verbose=0):
+def off_policy_mc(env,gamma=0.9,episodes=100,verbose=0):
     
-    def soft_policy():
-        return np.random.randint(0,4)
-    
-    Q=np.random.random_sample(size=(env.state_space[0],env.state_space[1],env.action_space))
-    C=np.zeros_like(Q)
+    Q=np.random.random(size=(env.state_space[0],env.state_space[1],env.action_space))
+    C=np.zeros_like(Q,dtype=np.float64)
     
     policy=np.zeros(shape=(env.state_space[0],env.state_space[1]))
     
@@ -132,24 +122,31 @@ def off_policy_mc(env,gamma=0.1,episodes=100,verbose=0):
             policy[i,j]=np.argmax(Q[i,j])
     
     for ep in range(1,episodes+1):
+        env.reset()
         done=False
         history=[]
         while not done:
             state=[env.agent_state,env.box_state]
-            action=soft_policy()
+            action=e_greedy(state,Q,epsilon=0.8)
             [new_state,reward,done]=env.step(action)
             history.append([state,action,reward])
             steps=len(history)
             state=new_state
-        g=0
-        w=1
+        
+        g=0.0
+        w=1.0
         for t in range(len(history)-1,-1,-1):
             g = (gamma*g) + history[t][2]
             C[history[t][0][0],history[t][0][1],history[t][1]]=C[history[t][0][0],history[t][0][1],history[t][1]]+w
             Q[history[t][0][0],history[t][0][1],history[t][1]]=Q[history[t][0][0],history[t][0][1],history[t][1]] + (w/ C[history[t][0][0],history[t][0][1],history[t][1]])*(g-Q[history[t][0][0],history[t][0][1],history[t][1]])
             policy[history[t][0][0],history[t][0][1]]=np.argmax(Q[history[t][0][0],history[t][0][1]])
             if policy[history[t][0][0],history[t][0][1]] == history[t][1]:
-                w=w*4
+                if history[t][1]==np.argmax(Q[history[t][0][0],history[t][0][1]]):
+                    w=w/(0.2+(0.8/4))
+                else:
+                    w=w/(0.8/4)
+            else:
+                break
         if verbose==1:
             print(f"Episode {ep} completed with {steps} steps")
     return policy   

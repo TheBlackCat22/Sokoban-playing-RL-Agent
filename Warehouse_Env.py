@@ -65,7 +65,9 @@ class Warehouse():
         self.box_position=new_box_pos
         
         self.agent_state=self.state_lookup[tuple(self.agent_position)]
+        new_agent_state=self.agent_state
         self.box_state=self.state_lookup[tuple(self.box_position)]
+        new_box_state=self.box_state
 
         # If bos is on goal
         if new_box_pos.tolist()==self.goal_position.tolist():
@@ -78,7 +80,7 @@ class Warehouse():
             self.reset()
             
 
-        return [[self.agent_state,self.box_state],reward,done]
+        return [[new_agent_state,new_box_state],reward,done]
        
         
     def render(self,for_animation=False): 
